@@ -14,7 +14,25 @@ export default {
         // QUESTION: what the... is this?
         createStaticVertexBuffer(
             gl,
-            [-1, -1, +1, -1, -1, +1, -1, +1, +1, -1, +1, +1]
+            [
+            0, 0.5, // Top
+            -0.2, -0.5, // Bottom left
+            0.2, -0.5, // Bottom right
+
+            -0.45, 0, // Far left
+            0.45, 0, // Far right
+            0.0, -0.5, // Bottom
+
+            //Bottom left triangle
+            0, -0.5, // Top middle
+            -0.2, -0.5, // Top left
+            -0.28, -0.9, // Bottom left
+            
+            //Bottom right triangle
+            0, -0.5, // Top middle
+            0.2, -0.5, // Top right
+            0.28, -0.9, // Bottom left
+            ]
         );
 
         const state = compile(gl, vertexShaderSource, fragmentShaderSource);
@@ -34,7 +52,7 @@ export default {
             gl.useProgram(state.program);
 
             // QUESTION: triangles?
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            gl.drawArrays(gl.TRIANGLES, 0, 12);
         }
     }]
 }
