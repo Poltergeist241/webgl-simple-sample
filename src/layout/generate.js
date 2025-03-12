@@ -1,12 +1,11 @@
 import {addButton, addValueLabel} from "./controls.js";
+import {renderWithErrors} from "./shaderCode.js";
 
 
 const generatePage = (elements, state, controls) => {
 
     elements.fragment.classList.add("code");
-    elements.fragment.innerHTML = `
-        <pre>${state.source.fragment}</pre>
-    `;
+    elements.fragment.innerHTML = renderWithErrors(state.source.fragment, state.error.fragment);
 
     elements.vertex.classList.add("code");
     elements.vertex.innerHTML = `
@@ -14,18 +13,22 @@ const generatePage = (elements, state, controls) => {
     `;
 
     elements.console.innerHTML = `
-        <h4>Fragment Shader</h4>
-        <div>Compile Status: ${state.compileStatus.fragment}</div>
-        <div class="error">${state.error.fragment}</div>
-        <div></div>
-        <h4>Vertex Shader</h4>
-        <div>Compile Status: ${state.compileStatus.vertex}</div>
-        <div class="error">${state.error.vertex}</div>
-        <div></div>
-        <h4>Shader Program</h4>
-        <div>Link Status: ${state.compileStatus.linker}</div>
-        <div class="error">${state.error.linker}</div>
-        <div></div>
+        <h2>Compilation failed.</h2>
+        <div>
+            <h4>Fragment Shader</h4>
+            <div>Compile Status: ${state.compileStatus.fragment}</div>
+            <div class="error">${state.error.fragment}</div>
+        </div>
+        <div>
+            <h4>Vertex Shader</h4>
+            <div>Compile Status: ${state.compileStatus.vertex}</div>
+            <div class="error">${state.error.vertex}</div>
+        </div>
+        <div>
+            <h4>Shader Program</h4>
+            <div>Link Status: ${state.compileStatus.linker}</div>
+            <div class="error">${state.error.linker}</div>
+        </div>
     `;
 
     const locations = Object.entries(state.location);
@@ -49,7 +52,7 @@ export default generatePage;
 export const addControlsToPage = (elements, state, controls) => {
     if (!state.program) {
         elements.controls.innerHTML = `
-            <div class="error rightnote">
+            <div class="error" style="text-align: right;">
                 Nothing to render, because compilation failed.
             </div>
         `;

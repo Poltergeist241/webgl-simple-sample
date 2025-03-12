@@ -1,0 +1,33 @@
+.code {
+    text-align: left;
+    font-size: var(--font-size-large);
+    line-height: 1.2;
+    font-weight: bold;
+    background-color: #f0f9ff;
+}
+
+.source {
+    display: flex;
+    flex-direction: column;
+}
+
+.error {
+    color: #CC0000;
+    font-weight: bold;
+    white-space: pre-wrap;
+}
+
+.error.line {
+    background-color: #F002;
+}
+
+.annotation {
+    font-size: 0.7rem;
+    height: 0.7rem;
+    position: absolute;
+    right: 0.25rem;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    color: mediumvioletred;
+}
