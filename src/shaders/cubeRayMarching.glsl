@@ -119,19 +119,21 @@ Surface sdScene(vec3 p) {
     vec3 floorColor = (0.5 + 0.15 * mod(floor(p.x) + floor(p.z), 4.0)) * vec3(0.9, 1., .95);
     Surface co = sdFloor(p, floorColor);
     Surface box, ball;
-    box = sdBox(p, vec3(1.), vec3(-2., floorLevel + 1., -2.), vec3(1, 0.1, 0.4), identity());
+    //box = sdBox(p, vec3(0.3), vec3(-2., floorLevel + 1., -2.), vec3(1, 0.1, 0.4), identity());
+    //co = takeCloser(co, box);
+    box = sdBox(p, vec3(1.5), vec3(3, floorLevel + 1.2, -3.), vec3(0.2, 0.65, 0.9), rotateY(0.25 * iTime));
+
+    wobbleDistort(box, p, 0.3, vec3(20., 10., 16. + 0.4 * 3. * iTime));
+
     co = takeCloser(co, box);
-    box = sdBox(p, vec3(1.2), vec3(3, floorLevel + 1.2, -3.), vec3(0.2, 0.65, 0.9), rotateY(0.25 * pi));
 
-    //    wobbleDistort(box, p, 0.03, vec3(20., 10., 16. + 0. * 3. * iTime));
+    ball = sdPatternSphere(p, vec3(1.), vec3(-2., floorLevel + 1., -4.), vec3(1, 0.1, 0.8), rotateY(-0.6 * iTime), vec3(0.5, 0.2, 0.8), 8.);
+    co = takeCloser(co, ball);
 
-    co = takeCloser(co, box);
-
-    //    ball = sdPatternSphere(p, vec3(1.), vec3(-2., floorLevel + 1., -2.), vec3(1, 0.1, 0.8), identity(), vec3(0.5, 0.2, 0.8), 8., 0.5);
-
-    //    mat3 ballTransform = rotateY(0.5 * iTime);
-    //    ball = sdSphere(p, vec3(1.), vec3(-2., floorLevel + 1., -2.), vec3(1, 0.6, 0.8), ballTransform);
-    //    co = takeCloser(co, ball);
+    mat3 ballTransform = rotateY(0.5 * iTime);
+    ball = sdSphere(p, vec3(1.), vec3(-3., floorLevel + 1., -2.), vec3(1, 0.6, 0.8), ballTransform);
+    wobbleDistort(ball, p, 0.03, vec3(20., 10., 16. + 0.2 * 3. * iTime));
+    co = takeCloser(co, ball);
 
     return co;
 }
@@ -195,14 +197,16 @@ vec3 calcNormal(in vec3 p) {
 void main() {
     vec2 uv = (-1.0 + 2.0 * gl_FragCoord.xy / iResolution.xy) * vec2(iResolution.x / iResolution.y, 1.0);
 
-    vec3 backgroundColor = vec3(0.8, 0.3 + uv.y, 1.);
+    vec3 backgroundColor = vec3(0.8 * sin(2.3 * iTime) + 0.4, 0.3 + uv.y, 1.);
     vec3 col = vec3(0.);
     float d;
 
     vec3 ro = vec3(0., 0., 1.);
     vec3 rd = normalize(vec3(uv, -1.));
-    rd *= rotateX(-0.3 * pi);
-    // rd *= rotateY(0.02 * sin(3. * iTime));
+    rd *= rotateX(-0.3);
+    //rd *= rotateX(-0.3 * sin(3.7 * iTime) - 0.2);
+    //rd *= rotateY(0.5);
+    //rd *= rotateZ(3.5 * iTime);
 
     Surface co = rayMarch(ro, rd, MIN_DIST, MAX_DIST);
 
@@ -211,7 +215,7 @@ void main() {
     } else {
         vec3 p = ro + rd * co.sd;
         vec3 normal = calcNormal(p);
-        vec3 lightPosition = vec3(4., 7., 2.);
+        vec3 lightPosition = vec3(0. + 2. * sin(iTime), 4. + 2. * sin(iTime), 2.);
         vec3 lightDirection = normalize(lightPosition - p);
 
         // Erinnerung: _irgendwie_ muss Abstand "d" zu einer Farbe werden.
@@ -231,26 +235,26 @@ void main() {
         d = mix(d, diffuse, 1.);
 
         // sekundäres Ray Marching für Schatten
-        //        float shadow = rayMarchShadow(p, lightDirection);
-        //        d = mix(d, shadow, 0.);
+               float shadow = rayMarchShadow(p, lightDirection);
+               d = mix(d, shadow, 0.5);
 
         // Specular reflection:
         // proportional to angle between ray and reflections
-        //        vec3 refl = reflect(lightDirection, normal);
-        //        float specular = dot(refl, normalize(p));
-        //        specular = clamp(specular, 0., 1.);
-        //        specular = pow(specular, 3.);
-        //        d = mix(d, specular, 0.);
+               vec3 refl = reflect(lightDirection, normal);
+               float specular = dot(refl, normalize(p));
+               specular = clamp(specular, 0., 1.);
+               specular = pow(specular, 3.);
+               d = mix(d, specular, 0.4);
 
         // verschiedenartiges Color Grading
         col = d * co.col;
 
-        //        dif = mix(dif, co.sd, 0.03);
-        //        dif = mix(dif, dif * co.sd, 0.24);
-        //        float clamped_dif = clamp(dif, 0., 1.);
-        //        float graded_dif = atan(dif);
-        //        dif = mix(clamped_dif, graded_dif, 1.);
-        //        dif = pow(dif, 2.);
+            //    dif = mix(dif, co.sd, 0.03);
+            //    dif = mix(dif, dif * co.sd, 0.24);
+            //    float clamped_dif = clamp(dif, 0., 1.);
+            //    float graded_dif = atan(dif);
+            //    dif = mix(clamped_dif, graded_dif, 1.);
+            //    dif = pow(dif, 2.);
 
         // Distance Fog: Abschwächen je nach durchlaufenem Abstand
         col *= exp(-0.0001 * pow(co.sd, 3.)) * vec3(0.9, 0.8, 0.7);

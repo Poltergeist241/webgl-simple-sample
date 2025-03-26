@@ -2,7 +2,7 @@
 import simpleGeometrySetup from "./3_SimpleGeometry.js";
 
 import fragmentShaderSource from "../shaders/cubeRayMarching.glsl";
-// import fragmentShaderSource from "../shaders/cubeRayMarchingExtended.glsl";
+//import fragmentShaderSource from "../shaders/cubeRayMarchingExtended.glsl";
 
 export default {
     title: "Ray Tracing",
