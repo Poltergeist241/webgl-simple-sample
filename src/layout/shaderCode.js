@@ -1,76 +1,137 @@
-export function renderWithErrors(shaderSource, errorLog) {
+import {createDiv, renderSpan} from "./helpers.js";
+import {analyzeShader} from "../glslCode/codeAnalysis.js";
+import {prepareHighlightedCode} from "../glslCode/codeHighlighting.js";
+import {addShaderCodeEventListeners, scrollToElementId} from "./eventListeners.js";
 
-    const errors = parseErrors(errorLog);
-
-    const lines = shaderSource
-        .split('\n')
-        .map((line, row) =>
-            renderLineWithError(line, errors[row])
-        )
-        .join('\n');
-
-    return `
-        <div class="source">
-            ${lines}
-        </div>
-    `;
-}
-
-function renderLineWithError(line, errors) {
-    if (!errors) {
-        return renderAsIs(line);
-    }
-    const allErrors = errors.lines.join('; ');
-    return `
-        <div style="position: relative">
-            <pre class="error line" title="${allErrors}">${line}</pre>
-            <div class="annotation">${errors.lineNumber}</div>
-        </div>
-    `;
-}
-
-export function renderAsIs(shaderSource) {
-    // render empty lines a bit smaller to allow for more content
+export function appendShaderCode(elements, shaderSource, errorLog, shaderKey, title = "") {
     if (!shaderSource) {
-        return "<div style='height: 0.7em'></div>";
+        return;
     }
-    return `<pre>${shaderSource}</pre>`;
+
+    const codeBlock = createDiv("", "code-block");
+    elements.shaders.appendChild(codeBlock);
+
+    const header = createDiv(title, "code-header");
+    codeBlock.appendChild(header);
+
+    const sources = createDiv("", "source");
+    codeBlock.appendChild(sources);
+
+    const analyzed = analyzeShader(shaderSource, errorLog, shaderKey);
+    enrichHeader(header, analyzed);
+
+    for (const line of analyzed.lines) {
+        const annotatedLine = prepareLine(line, analyzed, shaderKey);
+        sources.appendChild(annotatedLine);
+    }
+
+    sources.innerHTML =
+        withMarkersReplaced(sources.innerHTML, analyzed);
+
+    addShaderCodeEventListeners(sources, elements.scrollStack);
 }
 
-// this holds for WebGl2, as of March 2025 - e.g. error logs look like:
-// ERROR: 0:12: '=' : dimension mismatch
-// -> parse accordingly: /<ignore>: <number>:<number>: <rest>/
-const ERROR_LINE = /:\s*([0-9]*):([0-9]*):\s*(.*)/g;
+function idForLine(shaderKey, lineNumber) {
+    return `${shaderKey}.line.${lineNumber}`;
+}
 
-function parseErrors(errorLog) {
-    if (!errorLog) {
-        return {};
+function prepareLine(line, analyzed, key) {
+    if (!line.code) {
+        return createDiv("", "empty-line");
     }
 
-    const errors = {};
+    const element = createDiv("", "line");
+    element.id = idForLine(key, line.number);
 
-    for (const line of errorLog.split('\n')) {
-        const parsed = [...line.matchAll(ERROR_LINE)][0];
-        if (!parsed) {
-            continue;
-        }
+    const errors = line.error
+        ?.inRow
+        .map(error => error.message)
+        .join('; ') ?? "";
 
-        // note: row counting is 1-based in the OpenGL error logs.
-        const column = parseInt(parsed[1]);
-        const lineNumber = parseInt(parsed[2]);
-        const row = lineNumber - 1;
-        const message = parsed[3];
+    let annotation = "";
 
-        if (!errors[row]) {
-            errors[row] = {
-                lineNumber,
-                lines: [],
-                inRow: []
-            }
-        }
-        errors[row].lines.push(line)
-        errors[row].inRow.push({column, message});
+    if (line.changed) {
+        element.classList.add("changed");
+        element.title = "Line Changed"
+        annotation = "changed";
+    }
+    if (line.removedBefore.length > 0) {
+        element.classList.add("removed-before");
+        element.title = "Was Removed: " + line.removedBefore.join("\n");
+    }
+    if (errors) {
+        element.classList.add("error");
+        element.title = errors;
+        annotation = errors;
     }
 
-    return errors;
+    const numberElement = createDiv(line.number, "line-number");
+    element.appendChild(numberElement);
+
+    const codeElement = prepareHighlightedCode(line, analyzed);
+    element.appendChild(codeElement);
+
+    if (annotation) {
+        element.appendChild(
+            createDiv(annotation, "annotation")
+        );
+        element.classList.add("annotated");
+    }
+
+    return element;
+}
+
+function withMarkersReplaced(code, analyzed) {
+    const assignedClasses = {
+        "defines": "is-defined symbol",
+        "globals": "is-global symbol",
+        "constants": "is-constant symbol",
+        "functions": "is-own-function symbol"
+    };
+
+    const result = {
+        original: code,
+        code: code,
+    };
+
+    for (const r of analyzed.replaceMarkers) {
+        result.code = result.code.replaceAll(r.marker, render(r));
+    }
+
+    return result.code;
+
+    function render(r) {
+        if (r.isDefinition) {
+            return renderSpan({
+                text: r.symbol.name,
+                id: r.symbol.name
+            });
+        }
+
+        const className = assignedClasses[r.key];
+        const title = `line ${r.symbol.lineNumber}: ${r.symbol.code ?? r.symbol.lineOfCode}`;
+        return renderSpan({
+            text: r.symbol.name,
+            className,
+            title,
+            data: r.symbol.name,
+        });
+    }
+}
+
+function enrichHeader(element, analyzed) {
+    const main = analyzed.defined.functions.find(f => f.name === "main");
+    if (!main) {
+        element.appendChild(
+            createDiv("no main() found!", "error")
+        )
+        return;
+    }
+
+    const mainLink = createDiv(`main() in l. ${main.lineNumber}`, "quicklink");
+    element.appendChild(mainLink);
+
+    mainLink.addEventListener("click", () => {
+        scrollToElementId(idForLine(analyzed.shaderKey, main.lineNumber))
+    });
 }

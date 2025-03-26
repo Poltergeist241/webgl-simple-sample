@@ -1,55 +1,66 @@
-import {addButton, addValueLabel} from "./controls.js";
-import {renderWithErrors} from "./shaderCode.js";
+import {addButton, addInput, addValueLabel} from "./controls.js";
+import {appendShaderCode} from "./shaderCode.js";
+import {appendText} from "./helpers.js";
+import {addStartupListeners, createScrollStackOn} from "./eventListeners.js";
 
 
-const generatePage = (elements, state, controls) => {
+const generatePage = (elements, state, controls, autoRenderOnLoad) => {
 
-    elements.fragment.classList.add("code");
-    elements.fragment.innerHTML = renderWithErrors(state.source.fragment, state.error.fragment);
-
-    elements.vertex.classList.add("code");
-    elements.vertex.innerHTML = `
-        <pre>${state.source.vertex}</pre>
-    `;
-
-    elements.console.innerHTML = `
-        <h2>Compilation failed.</h2>
-        <div>
-            <h4>Fragment Shader</h4>
-            <div>Compile Status: ${state.compileStatus.fragment}</div>
-            <div class="error">${state.error.fragment}</div>
-        </div>
-        <div>
-            <h4>Vertex Shader</h4>
-            <div>Compile Status: ${state.compileStatus.vertex}</div>
-            <div class="error">${state.error.vertex}</div>
-        </div>
-        <div>
-            <h4>Shader Program</h4>
-            <div>Link Status: ${state.compileStatus.linker}</div>
-            <div class="error">${state.error.linker}</div>
-        </div>
-    `;
-
-    const locations = Object.entries(state.location);
-    if (locations.length > 0) {
-        let locationHTML =
-            `<h4>Locations (whatever these are)</h4>`
-            + "<pre>";
-        for (const [name, location] of locations) {
-            locationHTML +=
-                `${name.padEnd(20)} -> ${location}\n`;
-        }
-        locationHTML += "</pre>";
-        elements.console.innerHTML += locationHTML;
+    if (!state.program) {
+        elements.workingShader.remove();
+        elements.console.innerHTML = renderErrorConsole(state);
+    } else {
+        elements.console.remove();
     }
 
-    addControlsToPage(elements, state, controls);
+    elements.scrollStack = createScrollStackOn(elements.shaders);
+
+    appendShaderCode(
+        elements,
+        state.source.fragment,
+        state.error.fragment,
+        "fragment.source",
+        "Fragment Shader"
+    );
+    appendShaderCode(
+        elements,
+        state.source.vertex,
+        state.error.vertex,
+        "vertex.source",
+        "Vertex Shader"
+    );
+
+    if (state.post) {
+        appendText(
+            elements.shaders,
+            "h4",
+            "Second Program (Post Processing):"
+        );
+        appendShaderCode(
+            elements,
+            state.post.source.fragment,
+            state.post.error.fragment,
+            "fragment.post.source",
+            "Fragment Shader"
+        );
+        appendShaderCode(
+            elements,
+            state.post.source.vertex,
+            state.post.error.vertex,
+            "vertex.post.source",
+            "Vertex Shader"
+        );
+    }
+
+    addStartupListeners();
+    addControlsToPage(elements, state, controls, autoRenderOnLoad);
+
+    elements.initialRenderMs = performance.now() - elements.startRendering;
 };
 
 export default generatePage;
 
-export const addControlsToPage = (elements, state, controls) => {
+export const addControlsToPage = (elements, state, controls, autoRenderOnLoad) => {
     if (!state.program) {
         elements.controls.innerHTML = `
             <div class="error" style="text-align: right;">
@@ -63,10 +74,14 @@ export const addControlsToPage = (elements, state, controls) => {
 
         switch (control.type) {
             case "renderButton":
-                addButton(elements.controls, {
-                    title: control.title,
-                    onClick: control.onClick,
-                });
+                if (autoRenderOnLoad) {
+                    control.onClick();
+                } else {
+                    addButton(elements.controls, {
+                        title: control.title,
+                        onClick: control.onClick,
+                    });
+                }
                 break;
 
             case "label":
@@ -77,6 +92,12 @@ export const addControlsToPage = (elements, state, controls) => {
                     });
                 break;
 
+            case "cursorInput":
+            case "floatInput":
+                elements[control.name] =
+                    addInput(elements.controls, state, control);
+                break;
+
             default:
                 console.warn("Undefined Control", control);
         }
@@ -84,3 +105,38 @@ export const addControlsToPage = (elements, state, controls) => {
     }
 
 };
+
+function renderErrorConsole(state) {
+    let result = `
+        <h2>Compilation failed.</h2>
+        ${renderCompileStepStatus("Fragment Shader", state.error.fragment, "compiled.")}
+        ${renderCompileStepStatus("Vertex Shader", state.error.vertex, "compiled.")}
+        ${renderCompileStepStatus("Shader Program", state.error.linker, "linked.")}
+    `;
+
+    const locations = Object.entries(state.location);
+    if (locations.length > 0) {
+        result +=
+            `<h4>Locations (whatever these are)</h4>`
+            + "<pre>";
+        for (const [name, location] of locations) {
+            result +=
+                `${name.padEnd(20)} -> ${location}\n`;
+        }
+        result += "</pre>";
+    }
+
+    return result;
+}
+
+function renderCompileStepStatus(title, error, successMessage) {
+    const content = error
+        ? `<pre class="error">${error}</pre>`
+        : `<div>${successMessage}</div>`;
+    return `
+        <div>
+            <h4>${title}</h4>
+            ${content}
+        </div>    
+    `;
+}

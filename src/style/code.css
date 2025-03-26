@@ -1,10 +1,30 @@
-.code {
+.code-block {
+    --shadow: 1px 1px 1px #0002;
+    --code-background: #f0f9ff;
+
     text-align: left;
     font-size: var(--font-size-large);
     line-height: 1.2;
     font-weight: bold;
-    background-color: #f0f9ff;
+    background-color: var(--code-background);
     color: black;
+    position: relative;
+}
+
+.code-header {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.5rem;
+    color: cornflowerblue;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    clear: right;
+    background-color: var(--code-background);
+    box-shadow: -1px 1px 1px black;
+    z-index: 1;
 }
 
 .source {
@@ -15,20 +35,130 @@
 .error {
     color: #CC0000;
     font-weight: bold;
+}
+
+.code {
+    font-family: monospace;
     white-space: pre-wrap;
 }
 
-.error.line {
+.line {
+    position: relative;
+    display: flex;
+
+    flex-flow: row wrap;
+    align-items: baseline;
+}
+
+.line:hover {
+    background-color: #aa44ff10;
+}
+
+.line.selected {
+    background-color: #aa44ff30;
+    box-shadow: 1px 1px 2px #0002;
+}
+
+.line .code {
+    min-width: fit-content;
+}
+
+.line.changed {
+    background-color: powderblue;
+    color: blue;
+}
+
+.line.error {
     background-color: #F002;
+    color: #CC0000;
+}
+
+.line.removed-before:not(.changed) {
+    border-top: 3px solid powderblue;
 }
 
 .annotation {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     height: 0.7rem;
-    position: absolute;
-    right: 0.25rem;
-    top: 0;
-    bottom: 0;
-    margin: auto;
-    color: mediumvioletred;
+    margin-left: auto;
+    padding: 0.5em;
+    overflow: visible;
+}
+
+.empty-line {
+    height: 0.7em;
+}
+
+.line-number {
+    font-size: 0.5em;
+    width: 1.2rem;
+    font-weight: normal;
+    text-align: right;
+    margin-right: 2rem;
+    opacity: 0.7;
+}
+
+.annotated > .line-number {
+    font-weight: bold;
+    font-size: 0.7em;
+}
+
+.code .keyword {
+    color: darkmagenta;
+    text-shadow: var(--shadow);
+}
+
+.code .keyword.magic {
+    color: orangered;
+}
+
+.code .number {
+    color: green;
+}
+
+.code .builtin {
+    color: darkblue;
+    text-shadow: var(--shadow);
+}
+
+.code .directive {
+    color: magenta;
+    text-shadow: var(--shadow);
+}
+
+.code .is-defined {
+    color: magenta;
+}
+
+.code .is-global {
+    color: blue;
+}
+
+.code .is-constant {
+    color: blue;
+}
+
+.code .is-own-function {
+    color: green;
+}
+
+.symbol {
+    cursor: pointer;
+}
+
+.symbol:hover {
+    text-decoration: underline;
+    background-color: white;
+}
+
+.quicklink {
+    font-size: smaller;
+    font-family: monospace;
+    text-decoration: underline;
+    color: black;
+}
+
+.quicklink:hover {
+    cursor: pointer;
+    opacity: 0.6;
 }
