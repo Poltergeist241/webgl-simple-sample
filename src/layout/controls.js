@@ -1,4 +1,4 @@
-import REGEX from "../glslCode/regexp.js";
+import REGEX from "../glslCode/regex.js";
 
 export function addButton(parent, {onClick, onRightClick, title = "", className = ""}) {
     const button = document.createElement("button");
@@ -41,6 +41,7 @@ export function addInput (parent, state, control) {
         .find(uniform => uniform.name === control.name);
 
     if (!expected) {
+        console.warn("Could not find expected uniform", control, state);
         return;
     }
 

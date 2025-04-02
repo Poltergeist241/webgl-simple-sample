@@ -1,18 +1,37 @@
 import {asResolution, createShader} from "./helpers.js";
+import {translateShaderToyFormat} from "./compatibility.js";
 
 /**
  *
  * @param canvas - You need a <canvas> element to initialize WebGl context
  *                 Also, your browser needs to support this.
  *                 See: https://caniuse.com/webgl2
- *                 Fallback: https://caniuse.com/webgl
  * @param geometry {width, height, aspectRatio} - canvas dimensions, specify either two
  */
 
 export function setupWebGl(canvas, geometry) {
 
     const gl = canvas.getContext("webgl2");
-    // LEFT OUT: one would check here whether WebGL2 is even supported
+    if (!gl) {
+        window.alert("We need WebGL2 and your Browser does not support that, sadly.");
+        // now the rest will fail badly, but that doesn't matter for me now,
+        // because the application can not be used either way -- we need WebGL2!
+        // https://caniuse.com/webgl2
+    }
+
+    // WebGL2-spezifisch müsen manche Erweiterungen für manche Anwendungszwecke nachgeladen werden,
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Using_Extensions
+    // wir brauchen hier erstmal nur:
+    const WEBGL_EXTENSIONS = ["EXT_color_buffer_float"];
+    gl.ext = {};
+    for (const extension of WEBGL_EXTENSIONS) {
+        const ext = gl.getExtension(extension);
+        if (!ext) {
+            console.warn("Extension not available:", extension);
+        }
+        gl.ext[extension] = ext;
+    }
+    // <-- kann man als Anfänger ignorieren, aber wir brauchen das später für Float-Texturen / Framebuffer
 
     const canvasRect = canvas.getBoundingClientRect();
     if (!geometry.height) {
@@ -22,8 +41,6 @@ export function setupWebGl(canvas, geometry) {
     canvas.width = width;
     canvas.height = height;
     gl.viewport(0, 0, width, height);
-
-    // note: canvas is now also passed as gl.canvas
 
     return gl;
 }
@@ -60,6 +77,9 @@ function createInitialState(vertexSrc, fragmentSrc) {
     };
 }
 
+// quick way to include Shader Toy shaders: add ?shadertoy-Flag to URL Query (value doesn't matter)
+const shaderToyFlag = window.location.search.includes("shadertoy");
+
 /**
  *
  * @param gl - the WebGl context (browser needs to support this)
@@ -67,6 +87,10 @@ function createInitialState(vertexSrc, fragmentSrc) {
  * @param fragmentSrc - the Fragment Shader Source
  */
 export function compile(gl, vertexSrc, fragmentSrc) {
+    if (shaderToyFlag) {
+        fragmentSrc = translateShaderToyFormat(fragmentSrc);
+    }
+
     const result = createInitialState(vertexSrc, fragmentSrc);
 
     const v = createShader(gl, gl.VERTEX_SHADER, vertexSrc);

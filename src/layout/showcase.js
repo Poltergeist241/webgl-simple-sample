@@ -1,4 +1,4 @@
-import REGEX from "../glslCode/regexp.js";
+import REGEX from "../glslCode/regex.js";
 
 
 const storageKey = "qm.showcase.key";
@@ -32,7 +32,7 @@ function readUniforms(...sources) {
         if (!source) {
             continue;
         }
-        for (const match of source.matchAll(REGEX.GLOBAL)) {
+        for (const match of source.matchAll(REGEX.SHADER_VARIABLE)) {
             if (match.groups?.keyword !== "uniform") {
                 continue;
             }

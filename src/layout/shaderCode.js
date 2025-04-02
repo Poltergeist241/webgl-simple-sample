@@ -1,9 +1,9 @@
-import {createDiv, renderSpan} from "./helpers.js";
-import {analyzeShader} from "../glslCode/codeAnalysis.js";
-import {prepareHighlightedCode} from "../glslCode/codeHighlighting.js";
-import {addShaderCodeEventListeners, scrollToElementId} from "./eventListeners.js";
+import {createDiv} from "./helpers.js";
+import {analyzeShader, extendAnalysis} from "../glslCode/analysis.js";
+import {withGlslHighlighting, withSymbolsHighlighted} from "../glslCode/highlighting.js";
+import {addShaderCodeEventListeners, scrollToElementId} from "./events.js";
 
-export function appendShaderCode(elements, shaderSource, errorLog, shaderKey, title = "") {
+export function registerShaderCode(elements, shaderSource, errorLog, shaderKey, title = "") {
     if (!shaderSource) {
         return;
     }
@@ -18,120 +18,65 @@ export function appendShaderCode(elements, shaderSource, errorLog, shaderKey, ti
     codeBlock.appendChild(sources);
 
     const analyzed = analyzeShader(shaderSource, errorLog, shaderKey);
-    enrichHeader(header, analyzed);
+
+    const references = {header, sources};
 
     for (const line of analyzed.lines) {
-        const annotatedLine = prepareLine(line, analyzed, shaderKey);
-        sources.appendChild(annotatedLine);
+        const elements = prepareElements(line, shaderKey);
+        sources.appendChild(elements.line);
+
+        references[line.number] = elements;
     }
 
-    sources.innerHTML =
-        withMarkersReplaced(sources.innerHTML, analyzed);
-
-    addShaderCodeEventListeners(sources, elements.scrollStack);
+    elements.register.push({shaderKey, references, analyzed});
 }
 
-function idForLine(shaderKey, lineNumber) {
+export function idForLine(shaderKey, lineNumber) {
     return `${shaderKey}.line.${lineNumber}`;
 }
 
-function prepareLine(line, analyzed, key) {
-    if (!line.code) {
-        return createDiv("", "empty-line");
-    }
+function prepareElements(line, shaderKey) {
+    const elements = {
+        line: createDiv("", "line"),
+        code: createDiv(line.code.original, "code"),
+        number: createDiv(line.number, "line-number"),
+        annotation: createDiv("", "annotation"),
+    };
+    elements.line.appendChild(elements.number);
+    elements.line.appendChild(elements.code);
+    elements.line.appendChild(elements.annotation);
+    elements.line.id = idForLine(shaderKey, line.number);
 
-    const element = createDiv("", "line");
-    element.id = idForLine(key, line.number);
+    let annotation = "";
+
+    if (line.code.empty) {
+        elements.line.classList.add("empty");
+    }
+    if (line.changed) {
+        elements.line.classList.add("changed");
+        elements.line.title = "Line Changed"
+        annotation = "changed";
+    }
+    if (line.removedBefore.length > 0) {
+        elements.line.classList.add("removed-before");
+        elements.line.title = "Was Removed: " + line.removedBefore.join("\n").trim();
+    }
 
     const errors = line.error
         ?.inRow
         .map(error => error.message)
         .join('; ') ?? "";
-
-    let annotation = "";
-
-    if (line.changed) {
-        element.classList.add("changed");
-        element.title = "Line Changed"
-        annotation = "changed";
-    }
-    if (line.removedBefore.length > 0) {
-        element.classList.add("removed-before");
-        element.title = "Was Removed: " + line.removedBefore.join("\n");
-    }
     if (errors) {
-        element.classList.add("error");
-        element.title = errors;
+        elements.line.classList.add("error");
+        elements.line.title = errors;
         annotation = errors;
     }
 
-    const numberElement = createDiv(line.number, "line-number");
-    element.appendChild(numberElement);
-
-    const codeElement = prepareHighlightedCode(line, analyzed);
-    element.appendChild(codeElement);
+    elements.annotation.textContent = annotation;
 
     if (annotation) {
-        element.appendChild(
-            createDiv(annotation, "annotation")
-        );
-        element.classList.add("annotated");
+        elements.annotation.classList.add("annotated");
     }
 
-    return element;
-}
-
-function withMarkersReplaced(code, analyzed) {
-    const assignedClasses = {
-        "defines": "is-defined symbol",
-        "globals": "is-global symbol",
-        "constants": "is-constant symbol",
-        "functions": "is-own-function symbol"
-    };
-
-    const result = {
-        original: code,
-        code: code,
-    };
-
-    for (const r of analyzed.replaceMarkers) {
-        result.code = result.code.replaceAll(r.marker, render(r));
-    }
-
-    return result.code;
-
-    function render(r) {
-        if (r.isDefinition) {
-            return renderSpan({
-                text: r.symbol.name,
-                id: r.symbol.name
-            });
-        }
-
-        const className = assignedClasses[r.key];
-        const title = `line ${r.symbol.lineNumber}: ${r.symbol.code ?? r.symbol.lineOfCode}`;
-        return renderSpan({
-            text: r.symbol.name,
-            className,
-            title,
-            data: r.symbol.name,
-        });
-    }
-}
-
-function enrichHeader(element, analyzed) {
-    const main = analyzed.defined.functions.find(f => f.name === "main");
-    if (!main) {
-        element.appendChild(
-            createDiv("no main() found!", "error")
-        )
-        return;
-    }
-
-    const mainLink = createDiv(`main() in l. ${main.lineNumber}`, "quicklink");
-    element.appendChild(mainLink);
-
-    mainLink.addEventListener("click", () => {
-        scrollToElementId(idForLine(analyzed.shaderKey, main.lineNumber))
-    });
+    return elements;
 }

@@ -2,8 +2,10 @@ import {setupWebGl} from "./webgl/setup.js";
 import {prepareShowcase} from "./layout/showcase.js";
 import generatePage from "./layout/generate.js";
 import initLayout, {setFromUrlParameters} from "./layout/init.js";
+import {selectShowcase} from "./showcases.js";
 import './style/index.css';
 
+<<<<<<< HEAD
 import showcase1 from "./showcases/1_PlainColor.js";
 import showcase2a from "./showcases/2_HelloShadertoy_broken.js";
 import showcase2b from "./showcases/2_HelloShadertoy_fixed_static.js";
@@ -19,6 +21,9 @@ import showcase9 from "./showcases/9_Volumetric.js";
 
 // choose wisely :)
 const showcase = showcase6;
+=======
+const showcase = selectShowcase();
+>>>>>>> bf54c70d9012ee01ad01990477fc6afe4e725a09
 
 const autoRenderOnLoad = true;
 

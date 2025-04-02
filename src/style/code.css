@@ -1,5 +1,5 @@
 .code-block {
-    --shadow: 1px 1px 1px #0002;
+    --shadow: 1px 1px 1px #4442;
     --code-background: #f0f9ff;
 
     text-align: left;
@@ -25,6 +25,7 @@
     background-color: var(--code-background);
     box-shadow: -1px 1px 1px black;
     z-index: 1;
+    user-select: none;
 }
 
 .source {
@@ -77,16 +78,32 @@
     border-top: 3px solid powderblue;
 }
 
+.line.unused-definition {
+    opacity: 0.35;
+}
+
+.empty {
+    align-items: center;
+}
+
 .annotation {
     font-size: 0.8rem;
     height: 0.7rem;
     margin-left: auto;
-    padding: 0.5em;
+    padding-right: 0.5em;
     overflow: visible;
 }
 
-.empty-line {
-    height: 0.7em;
+.unused-definition .annotation {
+    color: lightslategray;
+}
+
+.line > div:not(.code) {
+    user-select: none;
+}
+
+.line > div:not(.code):hover {
+    user-select: text;
 }
 
 .line-number {
@@ -98,7 +115,7 @@
     opacity: 0.7;
 }
 
-.annotated > .line-number {
+.annotated:not(.unused-definition) > .line-number {
     font-weight: bold;
     font-size: 0.7em;
 }
@@ -138,8 +155,12 @@
     color: blue;
 }
 
-.code .is-own-function {
+.code .is-custom-function {
     color: green;
+}
+
+.code > .unused {
+    opacity: 0.75;
 }
 
 .symbol {
