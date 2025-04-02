@@ -342,7 +342,7 @@ Surface sdScene(vec3 p) {
     obj = sdTexturedBox(p, vec3(0.6), firstCubePos, vec3(0.3, 0.65, 0.9), rotateX(-0.2 * pi + iTime));
     co = takeCloser(co, obj);
 
-    //    vec3 secondCubePos = firstCubePos + vec3(-3.0, 0., 0.);
+//        vec3 secondCubePos = firstCubePos + vec3(-3.0, 0., 0.);
 //    // this is advanced. dithering the time parameter for less glitchs. ist echt so.
 //    float phi = 20. * (iTime + 1.e-3 * hash14(p.xz));
 //    secondCubePos += 1. * vec3(cos(phi), 0., sin(phi));
@@ -466,17 +466,17 @@ void main() {
 
     // Beispiel Textur-Processing: Radial Motion Blur
     // man achte aber auf die Ecken -> Granularität sichtbar
-//    bgColor.xyz = vec3(0);
-//    float blurSteps = 32.;
-//    float blurLength = 5.;
-//    float phi = 0.03 * iTime;
-//    for (float step=0.; step < blurSteps; step += 1.) {
-//        phi -= 0.005;
-//        bgUv = (rotateZ(phi) * vec3(uv, 1.)).xy;
-//        st = fract(bgUv);
-//        vec3 texColor = texture(iTexture1, st).xyz * exp(-step / blurLength);
-//        bgColor.xyz = max(texColor, bgColor.xyz);
-//    }
+   bgColor.xyz = vec3(0);
+   float blurSteps = 32.;
+   float blurLength = 5.;
+   float phi = 0.03 * iTime;
+   for (float step=0.; step < blurSteps; step += 1.) {
+       phi -= 0.005;
+       bgUv = (rotateZ(phi) * vec3(uv, 1.)).xy;
+       st = fract(bgUv);
+       vec3 texColor = texture(iTexture2, st).xyz * exp(-step / blurLength);
+       bgColor.xyz = max(texColor, bgColor.xyz);
+   }
 
     // anderes Beispiel: Zoom Blur
 //    bgColor.xyz = vec3(0);
@@ -589,5 +589,5 @@ void main() {
     // Man achte auf die Werte der Koordinaten und die Texturparameter.
     // (v.A. bei einer Textur, die keinen schwarzen Rand hat.)
 
-    //fragColor = texture(iTexture1, uv);
+    //fragColor = texture(iTexture0, uv);
 }

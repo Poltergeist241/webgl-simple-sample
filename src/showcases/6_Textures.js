@@ -3,7 +3,7 @@ import {createTextureFromImage} from "../webgl/helpers.js";
 import {startRenderLoop} from "../webgl/render.js";
 
 import fragmentShaderSource from "../shaders/texturesAdvanced.glsl";
-import image0 from "../textures/frame.png";
+import image0 from "../textures/Vollmer-Juergen-Prof.jpg";
 import image1 from "../textures/hubble_extreme_deep_field.jpg";
 import image2 from "../textures/Wood066_1K-JPG_Color.jpg";
 
